@@ -15,8 +15,6 @@ class MiniServer
     @server = TCPServer.open(2000)
     @client_request = []
     
-    
-    
     listen_for_request
   end
   
@@ -25,7 +23,7 @@ class MiniServer
       @client = @server.accept
       @client_request = (client.gets).split
     
-    parse_request
+      #parse_request
       
       
       
@@ -35,9 +33,9 @@ class MiniServer
       
       
       
-      #client.puts "HEADER Response Line 1)http version 2) 3)Explanation\nDate:\nContent-Type:\nContent-Length:\r\n\r\nBODY"
+      client.puts "HEADER #{status_200} 1)http version 2) XXX 3)Explanation\nDate: #{Time.now.strftime("%d-%m-%Y %H:%M:%S")}\nContent-Type:\nContent-Length:\r\n\r\nBODY"
       
-      #locate_file
+      
       
       puts
       puts "...Receiving..."
@@ -46,28 +44,46 @@ class MiniServer
   end
   
   def parse_request
-    check_http_version
-    check_rest_verb
+    resource_exist?
+    if validate_http_version == true
+      #acquire_rest_verb
+    end
   end
   
-  def check_http_version
+  def validate_http_version
     if client_http_version == HTTP_VERSION
       true
     else
-      client.puts error_message_505
+      client.puts error_505
+      client.close
     end
   end
   
-  def check_rest_verb
+  def acquire_rest_verb
     if REST_VERBS.include? client_rest_verb
       client_rest_verb
     else
-      client.puts error_message_404
+      client.puts error_404
+      client.close
     end
   end
   
-  def locate_file
-    path = "index.html"
+  def check_resource_path
+    #regex to find "./" at start of client_resource
+    #if present, proceed to resource_exist?
+    #if not present, make path: "./" + client_resource then proceed to resource_exist?
+  end
+  
+  def resource_exist?
+    if File.exist?(client_resource)
+      get_resource
+    else
+      client.puts "#{error_404} - could not find #{client_resource}"
+    end
+  end
+  
+  def get_resource
+    path = "./index.html"
     file = File.new(path)
     
     client.puts "#{file.read}"
@@ -92,14 +108,34 @@ class MiniServer
   
   
   
+  def status_200
+    "#{status_number_200}: #{status_message_200}"
+  end
   
+  def status_message_200
+    "OK"
+  end
+  
+  def status_number_200
+    "Status 200"
+  end
+  
+  
+  
+  def error_404
+    "#{error_number_404}: #{error_message_404}"
+  end
+  
+  def error_405
+    "#{error_number_405}: #{error_message_405}"
+  end
+  
+  def error_505
+    "#{error_number_505}: #{error_message_505}"
+  end
   
   def error_message_404
     "Not Found"
-  end
-  
-  def error_message_405
-    "Method not Allowed"
   end
   
   def error_message_505
@@ -107,15 +143,15 @@ class MiniServer
   end
   
   def error_number_404
-    "404"
+    "Error 404"
   end
   
   def error_number_405
-    "405"
+    "Error 405"
   end
   
   def error_number_505
-    "505"
+    "Error 505"
   end
 end
 
@@ -124,8 +160,14 @@ MiniServer.new
 #TO DO:
 #+ divide input into array
 #+ check http version at slot 2; if version does not match up, redirect to 505 error
-#- when 505, STOP entire request
-#- when http version matches, check for REST verb included in slot 0
-#- GET for now otherwise redirect to 405 error.
-#- if slot 0 == GET then check for resource at slot 1
-#- if resource present - return it; if resource not present redirect to 404 error
+#+ when 505, STOP entire request
+#+ when http version matches, check for REST verb included in slot 0
+#+ check for GET verb, else redirect to 405 error.
+#* Standardise relative resource path and make absolute
+#* if slot 0 == GET then check for resource at slot 1
+#* if resource present - return it; if resource not present redirect to 404 error
+#* out response line: HTTP version 202 Success
+#* assign header Date to Time.now
+#* assign header Content-type to extension of file requested else
+#* assign header Content-length to byte length of file requested
+#* 
