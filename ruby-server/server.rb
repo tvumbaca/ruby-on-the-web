@@ -1,4 +1,5 @@
 require 'socket'
+require 'filemagic'
 
 module HTTP_protocol
   HTTP_VERSION = "HTTP/1.1"
@@ -33,7 +34,7 @@ class MiniServer
       
       
       
-      client.puts "HEADER #{status_200} 1)http version 2) XXX 3)Explanation\nDate: #{Time.now.strftime("%d-%m-%Y %H:%M:%S")}\nContent-Type:\nContent-Length:\r\n\r\nBODY"
+      client.puts "#{HTTP_VERSION} #{status_number_200} #{status_message_200}\nDate:           #{current_date_time}\nContent-Type:   #{acquire_mime_type}\nContent-Length: #{acquire_file_size}\r\n\r\nBODY"
       
       
       
@@ -41,6 +42,18 @@ class MiniServer
       puts "...Receiving..."
       client.close
     end
+  end
+  
+  def current_date_time
+    Time.now.strftime("%d-%m-%Y %H:%M:%S")
+  end
+  
+  def acquire_mime_type
+    FileMagic.new(FileMagic::MAGIC_MIME).file("index.html")
+  end
+  
+  def acquire_file_size
+    "#{File.size("index.html")} bytes"
   end
   
   def parse_request
