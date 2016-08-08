@@ -49,33 +49,25 @@ class MiniServer
   
   def parse_request
     if validate_http_version == true
-      use_rest_verb
+      client.puts use_rest_verb
     end
   end
 
   def use_rest_verb
     case
     when acquire_rest_verb == "GET"
-      client.puts get_resource
+      if get_resource != nil
+        successful_request_header + "\r\n\r\n#{get_resource}"
+      else
+        "#{error_404} - could not find #{client_resource}"
+      end
+    else
+      error_405
     end
   end
   
-  def validate_http_version
-    if client_http_version == HTTP_VERSION
-      true
-    else
-      client.puts error_505
-      client.close
-    end
-  end
-  
-  def acquire_rest_verb
-    if REST_VERBS.include? client_rest_verb
-      client_rest_verb
-    else
-      client.puts error_405
-      client.close
-    end
+  def successful_request_header
+    "#{HTTP_VERSION} #{status_number_200} #{status_message_200}\nDate:           #{current_date_time}\nContent-Type:   #{acquire_mime_type}\nContent-Length: #{acquire_file_size}"
   end
   
   def check_resource_path
@@ -93,12 +85,23 @@ class MiniServer
       file.close
       
       file_contents
-    else
-      "#{error_404} - could not find #{client_resource}"
     end
   end
   
-    
+  def validate_http_version
+    if client_http_version == HTTP_VERSION
+      true
+    else
+      client.puts error_505
+      client.close
+    end
+  end
+  
+  def acquire_rest_verb
+    client_rest_verb if REST_VERBS.include? client_rest_verb
+  end
+  
+      
     
   private
   
@@ -175,13 +178,14 @@ MiniServer.new
 #+ when 505, STOP entire request
 #+ when http version matches, check for REST verb included in slot 0
 #+ check for GET verb, else redirect to 405 error.
+
 #* !!regex: Standardise relative resource path and make absolute
-#* if slot 0 == GET then check for resource at slot 1
-#* if resource present - return it; if resource not present redirect to 404 error
-#* template output response line: HTTP version 202 Success
+
+#+ if slot 0 == GET then check for resource at slot 1
+#+ if resource present - return it; if resource not present redirect to 404 error
+#+ template output response line: HTTP version 202 Success
       #- 
 #+ assign header Date to Time.now
 #+ assign header Content-type to extension of file requested else
 #+ assign header Content-length to byte length of file requested
-#* 
 #+ Need to close file handle in get_resouce - currently unable to otherwise file cannot be read
