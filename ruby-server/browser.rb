@@ -10,11 +10,15 @@ socket = TCPSocket.open(host, port)
 socket.print(request)
 response = socket.read
 headers, body = response.split("\r\n\r\n")
-puts
-puts headers
-puts
-puts
-puts body
+if !headers.nil?
+  puts
+  puts headers
+end
+if !body.nil?
+  puts
+  puts
+  puts body
+end
 
 socket.close
 

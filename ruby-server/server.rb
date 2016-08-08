@@ -10,7 +10,7 @@ end
 class MiniServer
   include HTTP_protocol  
   
-  attr_reader :client, :client_request
+  attr_reader :client, :client_request, :modified_resource
   
   def initialize
     @server = TCPServer.open(2000)
@@ -24,20 +24,11 @@ class MiniServer
       @client = @server.accept
       @client_request = (client.gets).split
     
-      #parse_request
+      parse_request
       
-      
-      
-      #client.puts "hello world" if check_http_version == true
-      
-      #check_rest_verb
-      
-      
-      
-      client.puts "#{HTTP_VERSION} #{status_number_200} #{status_message_200}\nDate:           #{current_date_time}\nContent-Type:   #{acquire_mime_type}\nContent-Length: #{acquire_file_size}\r\n\r\nBODY"
-      
-      
-      
+      #need to modularise the status response line 
+      #client.puts "#{HTTP_VERSION} #{status_number_200} #{status_message_200}\nDate:           #{current_date_time}\nContent-Type:   #{acquire_mime_type}\nContent-Length: #{acquire_file_size}\r\n\r\n#{get_resource}"
+            
       puts
       puts "...Receiving..."
       client.close
@@ -49,17 +40,23 @@ class MiniServer
   end
   
   def acquire_mime_type
-    FileMagic.new(FileMagic::MAGIC_MIME).file("index.html")
+    FileMagic.new(FileMagic::MAGIC_MIME).file(client_resource)
   end
   
   def acquire_file_size
-    "#{File.size("index.html")} bytes"
+    "#{File.size(client_resource)} bytes"
   end
   
   def parse_request
-    resource_exist?
     if validate_http_version == true
-      #acquire_rest_verb
+      use_rest_verb
+    end
+  end
+
+  def use_rest_verb
+    case
+    when acquire_rest_verb == "GET"
+      client.puts get_resource
     end
   end
   
@@ -76,7 +73,7 @@ class MiniServer
     if REST_VERBS.include? client_rest_verb
       client_rest_verb
     else
-      client.puts error_404
+      client.puts error_405
       client.close
     end
   end
@@ -87,20 +84,18 @@ class MiniServer
     #if not present, make path: "./" + client_resource then proceed to resource_exist?
   end
   
-  def resource_exist?
-    if File.exist?(client_resource)
-      get_resource
-    else
-      client.puts "#{error_404} - could not find #{client_resource}"
-    end
-  end
-  
   def get_resource
-    path = "./index.html"
-    file = File.new(path)
-    
-    client.puts "#{file.read}"
-    file.close
+    if File.exist?(client_resource)
+      path = client_resource
+      file = File.new(path)
+      
+      file_contents = file.read
+      file.close
+      
+      file_contents
+    else
+      "#{error_404} - could not find #{client_resource}"
+    end
   end
   
     
@@ -151,6 +146,10 @@ class MiniServer
     "Not Found"
   end
   
+  def error_message_405
+    "Method not allowed"
+  end
+  
   def error_message_505
     "HTTP Version not supported"
   end
@@ -176,11 +175,13 @@ MiniServer.new
 #+ when 505, STOP entire request
 #+ when http version matches, check for REST verb included in slot 0
 #+ check for GET verb, else redirect to 405 error.
-#* Standardise relative resource path and make absolute
+#* !!regex: Standardise relative resource path and make absolute
 #* if slot 0 == GET then check for resource at slot 1
 #* if resource present - return it; if resource not present redirect to 404 error
-#* out response line: HTTP version 202 Success
-#* assign header Date to Time.now
-#* assign header Content-type to extension of file requested else
-#* assign header Content-length to byte length of file requested
+#* template output response line: HTTP version 202 Success
+      #- 
+#+ assign header Date to Time.now
+#+ assign header Content-type to extension of file requested else
+#+ assign header Content-length to byte length of file requested
 #* 
+#+ Need to close file handle in get_resouce - currently unable to otherwise file cannot be read
