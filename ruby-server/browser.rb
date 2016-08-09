@@ -14,17 +14,18 @@ class MiniBrowser
 
   def browse
     get_input
+    system 'clear'
     filter_input
   end
   
   def get_input
-    #http_method = gets.chomp
-    #url_path = gets.chomp
-    #browser_http_version = gets.chomp
-    @input = gets.chomp
+    http_method_input           = http_method_stdin
+    url_path_input              = url_path_stdin
+    browser_http_version_input  = browser_http_version_stdin
+    #@input = gets.chomp
     #@input = "POST thanks.html HTTP/1.1"
+    @input = "#{http_method_input} #{url_path_input} #{browser_http_version_input}"
     @request = "#{http_method} #{url_path} #{browser_http_version}\r\n\r\n"
-    
   end
   
   def filter_input
@@ -67,6 +68,27 @@ class MiniBrowser
 
   def browser_http_version
     message[2]
+  end
+  
+  def http_method_stdin
+    system 'clear'
+    puts "What is your http method?"
+    puts
+    gets.chomp
+  end
+  
+  def url_path_stdin
+    system 'clear'
+    puts "What is the uri path?"
+    puts
+    gets.chomp
+  end
+  
+  def browser_http_version_stdin
+    system 'clear'
+    puts "What http version is your browser using?"
+    puts
+    gets.chomp
   end
 
   #path = "index.html"
