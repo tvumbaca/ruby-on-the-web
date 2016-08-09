@@ -49,20 +49,20 @@ class MiniServer
   
   def parse_request
     if validate_http_version == true
-      client.puts use_rest_verb
+      client.puts use_http_method
     end
   end
 
-  def use_rest_verb
+  def use_http_method
     case
-    when acquire_rest_verb == "GET"
+    when acquire_http_method == "GET"
       if get_resource != nil
         successful_request_header + "\r\n\r\n#{get_resource}"
       else
-        "#{error_404} - could not find #{client_resource}"
+        "#{error_404} - could not find `#{client_resource}` path"
       end
     else
-      error_405
+      "#{error_405} - your `#{client_http_method}` method does not follow REST convention"
     end
   end
   
@@ -92,20 +92,20 @@ class MiniServer
     if client_http_version == HTTP_VERSION
       true
     else
-      client.puts error_505
+      client.puts "#{error_505} - please use #{HTTP_VERSION}"
       client.close
     end
   end
   
-  def acquire_rest_verb
-    client_rest_verb if REST_VERBS.include? client_rest_verb
+  def acquire_http_method
+    client_http_method if REST_VERBS.include? client_http_method
   end
   
       
     
   private
   
-  def client_rest_verb
+  def client_http_method
     client_request[0]
   end
   
