@@ -1,5 +1,6 @@
 require 'socket'
 require 'filemagic'
+require 'json'
 
 module HTTP_protocol
   HTTP_VERSION = "HTTP/1.1"
@@ -10,7 +11,7 @@ end
 class MiniServer
   include HTTP_protocol  
   
-  attr_reader :client, :client_request, :modified_resource
+  attr_reader :client, :client_request
   
   def initialize
     @server = TCPServer.open(2000)
@@ -23,7 +24,7 @@ class MiniServer
     loop do
       @client = @server.accept
       @client_request = (client.gets).split
-    
+      
       parse_request
       
       #need to modularise the status response line 
@@ -56,13 +57,20 @@ class MiniServer
   def use_http_method
     case
     when acquire_http_method == "GET"
-      if get_resource != nil
+      if get_resource != nil && client_resource =~ /index.html/
         successful_request_header + "\r\n\r\n#{get_resource}"
       else
         "#{error_404} - could not find `#{client_resource}` path"
       end
+    when acquire_http_method == "POST"
+      if get_resource != nil && client_resource =~ /thanks.html/
+        
+        successful_request_header + "\r\n\r\n#{post_to_resource}"
+      else
+        "#{error_404} - could not find `#{client_resource}` path"
+      end
     else
-      "#{error_405} - your `#{client_http_method}` method does not follow REST convention"
+      "#{error_405} - your `#{client_http_method}` method does not follow REST convention or is not supported by the server"
     end
   end
   
@@ -74,6 +82,19 @@ class MiniServer
     #regex to find "./" at start of client_resource
     #if present, proceed to resource_exist?
     #if not present, make path: "./" + client_resource then proceed to resource_exist?
+  end
+  
+  
+  
+  def post_to_resource
+    if File.exists?(client_resource)
+      params = JSON.parse(client_body)
+      path = client_resource
+      file = File.read(path)
+      file_contents = file.sub(/<%= yield %>/, "Username: #{params['viking']['name']}\r\n    Email:    #{params['viking']['email']}")
+            
+      file_contents
+    end
   end
   
   def get_resource
@@ -115,6 +136,10 @@ class MiniServer
   
   def client_http_version
     client_request[2]
+  end
+  
+  def client_body
+    client_request[3]
   end
   
   

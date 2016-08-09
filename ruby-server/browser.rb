@@ -1,7 +1,9 @@
 require 'socket'
+require 'json'
 
 class MiniBrowser
-  attr_reader :host, :port, :input, :request
+  attr_reader :host, :port, :input
+  attr_accessor :request
 
   def initialize
     @host = 'localhost'
@@ -12,12 +14,43 @@ class MiniBrowser
 
   def browse
     get_input
-    send_request
+    filter_input
   end
   
   def get_input
+    #http_method = gets.chomp
+    #url_path = gets.chomp
+    #browser_http_version = gets.chomp
     @input = gets.chomp
+    #@input = "POST thanks.html HTTP/1.1"
     @request = "#{http_method} #{url_path} #{browser_http_version}\r\n\r\n"
+    
+  end
+  
+  def filter_input
+    case
+    when http_method == "GET"
+      send_request
+    when http_method == "POST"
+      acquire_user_info
+      send_request
+    else
+      send_request
+    end
+  end
+
+  def acquire_user_info
+    puts "What is your username?"
+    user_name = gets.chomp
+    #user_name = "Cornelius"
+    puts "What is your email?"
+    user_email = gets.chomp
+    #user_email = "cornelius.soon@gmail.com"
+    
+    message_body = {viking: {name: user_name, email: user_email}}
+    message_body = message_body.to_json
+    
+    @request = @request.sub("\r\n\r\n", " #{message_body}\r\n\r\n")
   end
 
   def message
